@@ -1,0 +1,289 @@
+:root {
+  --bg: #0a0c0b;
+  --surface: #141715;
+  --line: #262b28;
+  --text: #ecebe6;
+  --muted: #7d857f;
+  --accent: #d4a24a;
+  --accent-dim: #6b5327;
+  --dial: clamp(200px, min(66vmin, 60vh), 460px);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+body { overflow: hidden; }
+
+.app {
+  position: relative;
+  height: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 16px;
+  align-items: center;
+}
+
+/* ---------- header ---------- */
+
+.head { text-align: center; margin: 0; }
+
+.steep {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.hint {
+  margin: 6px 0 0;
+  font-size: 13px;
+  letter-spacing: .04em;
+  color: var(--muted);
+  min-height: 1em;
+}
+
+/* ---------- sound toggle ---------- */
+
+.sound {
+  position: absolute;
+  top: max(14px, env(safe-area-inset-top));
+  right: 14px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: none;
+  color: var(--accent);
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+
+.sound:hover { border-color: var(--line); }
+.sound:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.sound svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.sound .spk { fill: currentColor; stroke-linejoin: round; }
+
+.sound[aria-pressed="true"]  .off-marks { display: none; }
+.sound[aria-pressed="false"] .on-marks  { display: none; }
+.sound[aria-pressed="false"] { color: var(--muted); }
+
+/* ---------- dial ---------- */
+
+.dial-wrap { display: grid; place-items: center; min-height: 0; }
+
+.dial-btn {
+  position: relative;
+  width: var(--dial);
+  height: var(--dial);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  touch-action: manipulation;
+}
+
+.dial-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 6px; }
+
+.dial { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+.dial-face { fill: var(--surface); }
+
+.ring-track {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 2;
+}
+
+.ring-progress {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  transform: rotate(-90deg);
+  transform-origin: 100px 100px;
+  transition: stroke-dashoffset .12s linear;
+}
+
+/* water */
+
+.water-level { transform: translateY(200px); }
+.water-level.smooth { transition: transform .35s cubic-bezier(.4, 0, .2, 1); }
+
+.wave path { fill: url(#waterGrad); }
+
+.wave-front { animation: drift 6.5s linear infinite; }
+.wave-back  { animation: drift 9.5s linear infinite reverse; opacity: .45; }
+
+@keyframes drift {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-100px); }
+}
+
+/* readout */
+
+.readout {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, .55);
+  pointer-events: none;
+}
+
+.time {
+  font-size: clamp(46px, 15vmin, 88px);
+  font-weight: 200;
+  letter-spacing: .02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.state {
+  font-size: 11px;
+  letter-spacing: .26em;
+  text-transform: uppercase;
+  color: var(--muted);
+  min-height: 1em;
+}
+
+.dial-btn.is-done .state { color: var(--accent); }
+.dial-btn.is-done .ring-progress { animation: pulse 1.9s ease-in-out infinite; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .25; }
+}
+
+/* ---------- controls ---------- */
+
+.controls { display: grid; gap: 14px; }
+
+.choose-label {
+  margin: 0;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: .26em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.opt {
+  flex: 1 1 84px;
+  max-width: 130px;
+  min-height: 54px;
+  padding: 14px 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .02em;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, transform .1s;
+  touch-action: manipulation;
+}
+
+.opt:hover { border-color: var(--accent-dim); }
+.opt:active { transform: scale(.96); }
+.opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.opt.suggested {
+  border-color: var(--accent-dim);
+  color: var(--accent);
+}
+
+.controls.hidden { visibility: hidden; }
+
+/* log */
+
+.log-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 22px;
+}
+
+.log {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.log span { padding: 2px 7px; border: 1px solid var(--line); border-radius: 999px; }
+
+.reset {
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: .08em;
+  cursor: pointer;
+}
+
+.reset:hover { color: var(--text); border-color: var(--accent-dim); }
+
+/* ---------- responsive ---------- */
+
+@media (min-width: 700px) and (min-height: 780px) {
+  :root { --dial: 460px; }
+  .app { gap: 28px; }
+}
+
+@media (max-height: 560px) {
+  :root { --dial: clamp(150px, 34vh, 210px); }
+  .sound { top: 6px; right: 6px; }
+  .app { gap: 10px; }
+  .opt { min-height: 46px; padding: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wave-front, .wave-back, .dial-btn.is-done .ring-progress { animation: none; }
+  .water-level.smooth { transition: none; }
+}
