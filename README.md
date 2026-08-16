@@ -37,6 +37,10 @@ Keyboard: `space` starts the first option or pauses, `1`–`9` pick an option,
 
 ## Putting it on an Android home screen
 
+Live at **https://dr-doofensmirtz.github.io/gongfu-timer/** — open that on the
+phone, tap Chrome's ⋮ menu and choose **Install app**. After the first load the
+service worker keeps a full copy, so it runs with no network from then on.
+
 Chrome only offers a real install (standalone window, own icon, works offline)
 over **HTTPS**. Plain `http://192.168.x.x` gets you a browser bookmark instead.
 
