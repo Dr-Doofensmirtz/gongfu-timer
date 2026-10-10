@@ -68,28 +68,26 @@
 
   <section class="controls">
 
-    <div class="panel" id="setupPanel">
-      <div class="field">
-        <label class="field-label" for="initialSelect">Initial steep</label>
-        <select class="select" id="initialSelect"></select>
-      </div>
-      <div class="field">
-        <span class="field-label">Increment per steep</span>
-        <div class="stepper">
-          <button class="step" id="incMinus" type="button" aria-label="Decrease increment by 5 seconds">&minus;5s</button>
-          <span class="step-value" id="incValue" aria-live="polite">+5s</span>
-          <button class="step" id="incPlus" type="button" aria-label="Increase increment by 5 seconds">+5s</button>
-        </div>
+    <div class="field" id="nextField" hidden>
+      <span class="field-label">Next infusion</span>
+      <div class="stepper">
+        <button class="step" id="nextMinus" type="button" aria-label="Shorten next infusion by 5 seconds">&minus;5s</button>
+        <span class="step-value" id="nextValue" aria-live="polite">+5s</span>
+        <button class="step" id="nextPlus" type="button" aria-label="Lengthen next infusion by 5 seconds">+5s</button>
       </div>
     </div>
 
-    <div class="panel" id="adjustPanel" hidden>
-      <div class="field">
-        <span class="field-label">Next infusion</span>
-        <div class="stepper">
-          <button class="step" id="nextMinus" type="button" aria-label="Shorten next infusion by 5 seconds">&minus;5s</button>
-          <button class="step" id="nextPlus" type="button" aria-label="Lengthen next infusion by 5 seconds">+5s</button>
-        </div>
+    <div class="field" id="initialField">
+      <label class="field-label" for="initialSelect">Initial steep</label>
+      <select class="select" id="initialSelect"></select>
+    </div>
+
+    <div class="field" id="incrementField">
+      <span class="field-label">Increment per steep</span>
+      <div class="stepper">
+        <button class="step" id="incMinus" type="button" aria-label="Decrease increment by 5 seconds">&minus;5s</button>
+        <span class="step-value" id="incValue" aria-live="polite">+5s</span>
+        <button class="step" id="incPlus" type="button" aria-label="Increase increment by 5 seconds">+5s</button>
       </div>
     </div>
 

@@ -21,9 +21,13 @@ finishes the cup fills, chimes, and then settles to show the next infusion
 time, which is the steep you just ran plus the increment. Tap the dial again to
 brew it.
 
-Before starting any infusion, `-5s` / `+5s` under the dial nudge that time
-(5s to 10 min). An adjusted time becomes the base for the next increment, so
-shortening one steep carries through to the rest of the session.
+The increment is a first-steep setting. Once brewing starts it gives way to
+**Next infusion**, whose `-5s` / `+5s` nudge the pending time (5s to 10 min).
+Between those two buttons sits the gap between the steep just finished and the
+pending one — the chosen increment to begin with, then whatever the nudges make
+it, including `0s` or a negative. An adjusted time becomes the base for the
+next increment, so shortening one steep carries through to the rest of the
+session. The steep log sits below.
 
 `Reset` returns to the setup screen and clears the steep log.
 

@@ -6,7 +6,8 @@
   --muted: #7d857f;
   --accent: #d4a24a;
   --accent-dim: #6b5327;
-  --dial: clamp(200px, min(66vmin, 60vh), 460px);
+  color-scheme: dark;
+  --dial: clamp(180px, min(78vmin, calc(100vh - 320px)), 460px);
 }
 
 * { box-sizing: border-box; }
@@ -31,14 +32,15 @@ body { overflow: hidden; }
   margin: 0 auto;
   padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
   display: grid;
-  grid-template-rows: auto 1fr auto;
-  gap: 16px;
-  align-items: center;
+  grid-template-rows: auto auto auto;
+  align-content: center;
+  justify-items: center;
+  gap: 18px;
 }
 
 /* ---------- header ---------- */
 
-.head { text-align: center; margin: 0; }
+.head { text-align: center; margin: 0; width: 100%; }
 
 .steep {
   margin: 0;
@@ -187,24 +189,27 @@ body { overflow: hidden; }
 
 /* ---------- controls ---------- */
 
-.controls { display: grid; gap: 14px; }
-.controls.hidden { visibility: hidden; }
-
-.panel {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 12px 28px;
+.controls {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  width: 100%;
 }
 
-/* display:flex would otherwise beat the [hidden] default */
-.panel[hidden] { display: none; }
+.controls.hidden { visibility: hidden; }
 
 .field {
   display: grid;
   justify-items: center;
   gap: 8px;
 }
+
+/* display:grid would otherwise beat the [hidden] default */
+.field[hidden] { display: none; }
+
+/* the increment reads out inside the Next infusion stepper once brewing
+   starts, so this field only holds its space and keeps the dial from shifting */
+.field.spacer { visibility: hidden; }
 
 .field-label {
   font-size: 11px;
@@ -216,7 +221,7 @@ body { overflow: hidden; }
 .select {
   min-height: 48px;
   min-width: 132px;
-  padding: 0 38px 0 16px;
+  padding: 0 38px;
   border: 1px solid var(--line);
   border-radius: 14px;
   background-color: var(--surface);
@@ -230,6 +235,7 @@ body { overflow: hidden; }
   font-variant-numeric: tabular-nums;
   text-align: center;
   cursor: pointer;
+  -webkit-appearance: none;
   appearance: none;
 }
 
@@ -309,9 +315,9 @@ body { overflow: hidden; }
 
 /* ---------- responsive ---------- */
 
-@media (min-width: 700px) and (min-height: 780px) {
+@media (min-width: 700px) and (min-height: 820px) {
   :root { --dial: 460px; }
-  .app { gap: 28px; }
+  .app { gap: 24px; }
 }
 
 @media (max-height: 560px) {
@@ -319,7 +325,8 @@ body { overflow: hidden; }
   .sound { top: 6px; right: 6px; }
   .app { gap: 10px; }
   .step, .select { min-height: 42px; }
-  .panel { gap: 8px 20px; }
+  .controls { gap: 8px; }
+  .field { gap: 4px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -15,12 +15,14 @@
     ring: document.getElementById('ringProgress'),
     time: document.getElementById('timeLabel'),
     state: document.getElementById('stateLabel'),
-    setupPanel: document.getElementById('setupPanel'),
-    adjustPanel: document.getElementById('adjustPanel'),
+    initialField: document.getElementById('initialField'),
+    incrementField: document.getElementById('incrementField'),
+    nextField: document.getElementById('nextField'),
     initial: document.getElementById('initialSelect'),
     incMinus: document.getElementById('incMinus'),
     incPlus: document.getElementById('incPlus'),
     incValue: document.getElementById('incValue'),
+    nextValue: document.getElementById('nextValue'),
     nextMinus: document.getElementById('nextMinus'),
     nextPlus: document.getElementById('nextPlus'),
     log: document.getElementById('log'),
@@ -60,6 +62,13 @@
   function formatClock(sec) {
     const total = Math.max(0, Math.ceil(sec));
     return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+  }
+
+  // How much longer the pending infusion is than the steep just finished —
+  // the chosen increment until the time is nudged, then whatever it works out to.
+  function formatDelta(sec) {
+    if (sec === 0) return '0s';
+    return `${sec > 0 ? '+' : '\u2212'}${Math.abs(sec)}s`;
   }
 
   function formatShort(sec) {
@@ -203,11 +212,23 @@
     const done = phase === 'done';
     const idle = setup || done;
 
+    // Which pair of fields the stack shows. While a steep runs the controls are
+    // only made invisible, so this keeps holding their space and the dial still.
+    const layout = state.history.length === 0 ? 'setup' : 'done';
+
     el.steep.textContent = `Steep ${state.steep}`;
     el.dialBtn.classList.toggle('is-done', done && state.holding);
     el.controls.classList.toggle('hidden', !idle);
-    el.setupPanel.hidden = !setup;
-    el.adjustPanel.hidden = !done;
+    el.initialField.hidden = layout !== 'setup';
+    el.nextField.hidden = layout === 'setup';
+    // increment is a first-steep setting; afterwards its value moves into the
+    // Next infusion stepper and this field just holds the dial in place
+    el.incrementField.classList.toggle('spacer', layout !== 'setup');
+
+    if (state.history.length) {
+      const last = state.history[state.history.length - 1];
+      el.nextValue.textContent = formatDelta(state.next - last);
+    }
 
     el.incValue.textContent = `+${state.increment}s`;
     el.incMinus.disabled = state.increment <= 0;
