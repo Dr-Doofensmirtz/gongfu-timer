@@ -1,6 +1,6 @@
 /* Offline shell for Gongfu Timer. Bump CACHE when the shell files change. */
 
-const CACHE = 'gongfu-v1';
+const CACHE = 'gongfu-v2';
 
 const SHELL = [
   './',

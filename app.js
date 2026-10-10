@@ -15,58 +15,56 @@
     ring: document.getElementById('ringProgress'),
     time: document.getElementById('timeLabel'),
     state: document.getElementById('stateLabel'),
-    chooseLabel: document.getElementById('chooseLabel'),
-    options: document.getElementById('options'),
+    setupPanel: document.getElementById('setupPanel'),
+    adjustPanel: document.getElementById('adjustPanel'),
+    initial: document.getElementById('initialSelect'),
+    incMinus: document.getElementById('incMinus'),
+    incPlus: document.getElementById('incPlus'),
+    incValue: document.getElementById('incValue'),
+    nextMinus: document.getElementById('nextMinus'),
+    nextPlus: document.getElementById('nextPlus'),
     log: document.getElementById('log'),
     reset: document.getElementById('resetBtn'),
     sound: document.getElementById('soundBtn'),
     controls: document.querySelector('.controls'),
   };
 
+  // ---------- constants ----------
+
+  const STEP = 5;             // every adjustment moves in 5s steps
+  const INITIAL_MIN = 5;      // dropdown runs 5s .. 1min
+  const INITIAL_MAX = 60;
+  const INCREMENT_MAX = 60;
+  const NEXT_MIN = 5;         // a started infusion can be stretched well past a minute
+  const NEXT_MAX = 600;
+  const DONE_HOLD_MS = 900;   // how long the full cup lingers before resetting
+
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
   // ---------- state ----------
 
   const state = {
-    phase: 'choosing',   // 'choosing' | 'running' | 'paused' | 'done'
-    steep: 1,            // steep number being chosen or brewed
-    duration: 0,         // seconds of the current steep
-    remaining: 0,        // seconds left (float)
-    endAt: 0,            // timestamp the current run ends at
-    lastPicked: null,    // seconds of the most recent steep, drives the next options
+    phase: 'setup',    // 'setup' | 'running' | 'paused' | 'done'
+    steep: 1,          // the infusion that is running, or the one about to
+    increment: 5,      // added to each finished steep to seed the next
+    next: 20,          // seconds the upcoming infusion will run for
+    duration: 0,       // seconds of the infusion currently running
+    remaining: 0,
+    endAt: 0,
+    holding: false,    // showing the full cup right after a steep finishes
     history: [],
   };
 
-  const FIRST_OPTIONS = [10, 15, 20, 25, 30];
-  const MINUTE = 60;
-
-  /**
-   * The next set of steeping times, in seconds.
-   *  - no steep yet          -> 10s .. 30s
-   *  - last steep under 1min -> +5s, +10s, +15s and 1min
-   *  - last steep in minutes -> that minute and the next four
-   */
-  function nextOptions(last) {
-    if (last == null) return FIRST_OPTIONS.slice();
-
-    if (last >= MINUTE) {
-      const m = Math.round(last / MINUTE);
-      return [0, 1, 2, 3, 4].map((i) => (m + i) * MINUTE);
-    }
-
-    const stepped = [last + 5, last + 10, last + 15].filter((s) => s < MINUTE);
-    return [...new Set([...stepped, MINUTE])].sort((a, b) => a - b);
-  }
-
-  function formatOption(sec) {
-    if (sec < MINUTE) return `${sec}s`;
-    const m = sec / MINUTE;
-    return Number.isInteger(m) ? `${m} min` : formatClock(sec);
-  }
+  // ---------- formatting ----------
 
   function formatClock(sec) {
     const total = Math.max(0, Math.ceil(sec));
-    const m = Math.floor(total / 60);
-    const s = total % 60;
-    return `${m}:${String(s).padStart(2, '0')}`;
+    return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+  }
+
+  function formatShort(sec) {
+    if (sec < 60) return `${sec}s`;
+    return sec % 60 === 0 ? `${sec / 60} min` : formatClock(sec);
   }
 
   // ---------- water + ring ----------
@@ -91,7 +89,7 @@
 
   // fill: 0 = empty cup, 1 = full cup
   function render(fill, secondsLeft) {
-    const f = Math.min(1, Math.max(0, fill));
+    const f = clamp(fill, 0, 1);
     el.water.style.transform = `translateY(${200 - f * 212}px)`;
     el.ring.style.strokeDashoffset = `${RING_LENGTH * (1 - f)}`;
     el.time.textContent = formatClock(secondsLeft);
@@ -178,57 +176,59 @@
 
   // ---------- ui ----------
 
-  function renderOptions() {
-    const opts = nextOptions(state.lastPicked);
-    el.options.replaceChildren(...opts.map((sec, i) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'opt' + (i === 0 ? ' suggested' : '');
-      b.textContent = formatOption(sec);
-      b.dataset.seconds = String(sec);
-      b.addEventListener('click', () => start(sec));
-      return b;
-    }));
+  function buildInitialOptions() {
+    const frag = document.createDocumentFragment();
+    for (let s = INITIAL_MIN; s <= INITIAL_MAX; s += STEP) {
+      const o = document.createElement('option');
+      o.value = String(s);
+      o.textContent = formatShort(s);
+      frag.append(o);
+    }
+    el.initial.replaceChildren(frag);
+    el.initial.value = String(state.next);
   }
 
   function renderLog() {
     el.log.replaceChildren(...state.history.map((sec, i) => {
       const s = document.createElement('span');
-      s.textContent = `${i + 1} · ${formatOption(sec)}`;
+      s.textContent = `${i + 1} · ${formatShort(sec)}`;
       return s;
     }));
-    el.reset.hidden = state.history.length === 0;
+    el.reset.hidden = state.history.length === 0 && state.phase === 'setup';
   }
 
   function paint() {
-    const { phase, steep } = state;
+    const { phase } = state;
+    const setup = phase === 'setup';
+    const done = phase === 'done';
+    const idle = setup || done;
 
-    el.steep.textContent = `Steep ${steep}`;
-    el.dialBtn.classList.toggle('is-done', phase === 'done');
-    el.controls.classList.toggle('hidden', phase === 'running' || phase === 'paused');
+    el.steep.textContent = `Steep ${state.steep}`;
+    el.dialBtn.classList.toggle('is-done', done && state.holding);
+    el.controls.classList.toggle('hidden', !idle);
+    el.setupPanel.hidden = !setup;
+    el.adjustPanel.hidden = !done;
 
-    if (phase === 'choosing') {
-      el.hint.textContent = state.history.length
-        ? 'Ready when you are'
-        : 'Choose a steeping time';
-      el.state.textContent = '';
-      el.chooseLabel.textContent = state.history.length
-        ? `Steep ${steep} time`
-        : 'Steeping time';
-      renderOptions();
-      smoothWater(true);
-      render(0, state.duration);
+    el.incValue.textContent = `+${state.increment}s`;
+    el.incMinus.disabled = state.increment <= 0;
+    el.incPlus.disabled = state.increment >= INCREMENT_MAX;
+    el.nextMinus.disabled = state.next <= NEXT_MIN;
+    el.nextPlus.disabled = state.next >= NEXT_MAX;
+
+    if (setup) {
+      el.hint.textContent = 'Tap the dial to start';
+      el.state.textContent = 'Tap to start';
     } else if (phase === 'running') {
       el.hint.textContent = 'Tap the dial to pause';
       el.state.textContent = '';
     } else if (phase === 'paused') {
       el.hint.textContent = 'Tap the dial to resume';
       el.state.textContent = 'Paused';
-    } else if (phase === 'done') {
-      el.hint.textContent = 'Decant — then pick the next steep';
-      el.state.textContent = 'Done';
-      el.chooseLabel.textContent = `Steep ${steep} time`;
-      renderOptions();
+    } else {
+      el.hint.textContent = state.holding
+        ? 'Decant the infusion'
+        : 'Tap the dial for the next infusion';
+      el.state.textContent = state.holding ? 'Done' : 'Tap to start';
     }
 
     renderLog();
@@ -238,6 +238,7 @@
 
   let rafId = 0;
   let safetyTimer = 0;
+  let holdTimer = 0;
 
   function tick() {
     if (state.phase !== 'running') return;
@@ -250,15 +251,18 @@
     rafId = requestAnimationFrame(tick);
   }
 
-  function start(seconds) {
+  function start() {
     unlockAudio();
+    clearTimeout(holdTimer);
+
     state.phase = 'running';
-    state.duration = seconds;
-    state.remaining = seconds;
-    state.endAt = performance.now() + seconds * 1000;
+    state.holding = false;
+    state.duration = state.next;
+    state.remaining = state.next;
+    state.endAt = performance.now() + state.next * 1000;
 
     smoothWater(false);
-    render(0, seconds);
+    render(0, state.next);
     paint();
     requestWakeLock();
 
@@ -276,17 +280,31 @@
     cancelAnimationFrame(rafId);
     clearInterval(safetyTimer);
 
-    state.phase = 'done';
-    state.remaining = 0;
     state.history.push(state.duration);
-    state.lastPicked = state.duration;
+    state.next = clamp(state.duration + state.increment, NEXT_MIN, NEXT_MAX);
     state.steep += 1;
+    state.phase = 'done';
+    state.holding = true;
+    state.remaining = 0;
 
+    smoothWater(false);
     render(1, 0);
     paint();
     releaseWakeLock();
     chime();
     if (navigator.vibrate) navigator.vibrate([120, 90, 120]);
+
+    // Let the full cup sit for a beat, then drain it and show what is next.
+    holdTimer = setTimeout(releaseHold, DONE_HOLD_MS);
+  }
+
+  function releaseHold() {
+    clearTimeout(holdTimer);
+    if (state.phase !== 'done' || !state.holding) return;
+    state.holding = false;
+    smoothWater(true);
+    render(0, state.next);
+    paint();
   }
 
   function togglePause() {
@@ -305,22 +323,69 @@
     }
   }
 
+  // The dial is the single start control: it begins the first steep and every
+  // infusion after it, and pauses whatever is already running.
+  function dialPressed() {
+    if (state.phase === 'setup' || state.phase === 'done') start();
+    else togglePause();
+  }
+
+  function adjustNext(delta) {
+    if (state.phase !== 'setup' && state.phase !== 'done') return;
+    releaseHold();
+
+    const lo = state.phase === 'setup' ? INITIAL_MIN : NEXT_MIN;
+    const hi = state.phase === 'setup' ? INITIAL_MAX : NEXT_MAX;
+    state.next = clamp(state.next + delta, lo, hi);
+
+    if (state.phase === 'setup') el.initial.value = String(state.next);
+    smoothWater(true);
+    render(0, state.next);
+    paint();
+  }
+
+  function adjustIncrement(delta) {
+    state.increment = clamp(state.increment + delta, 0, INCREMENT_MAX);
+    paint();
+  }
+
   function reset() {
     cancelAnimationFrame(rafId);
     clearInterval(safetyTimer);
+    clearTimeout(holdTimer);
     releaseWakeLock();
-    Object.assign(state, {
-      phase: 'choosing', steep: 1, duration: 0, remaining: 0,
-      endAt: 0, lastPicked: null, history: [],
-    });
+
+    state.phase = 'setup';
+    state.steep = 1;
+    state.duration = 0;
+    state.remaining = 0;
+    state.endAt = 0;
+    state.holding = false;
+    state.history = [];
+    state.next = Number(el.initial.value);
+
+    smoothWater(true);
+    render(0, state.next);
     paint();
   }
 
   // ---------- events ----------
 
-  el.dialBtn.addEventListener('click', togglePause);
+  el.dialBtn.addEventListener('click', dialPressed);
   el.reset.addEventListener('click', reset);
   el.sound.addEventListener('click', toggleSound);
+
+  el.incMinus.addEventListener('click', () => adjustIncrement(-STEP));
+  el.incPlus.addEventListener('click', () => adjustIncrement(STEP));
+  el.nextMinus.addEventListener('click', () => adjustNext(-STEP));
+  el.nextPlus.addEventListener('click', () => adjustNext(STEP));
+
+  el.initial.addEventListener('change', () => {
+    state.next = clamp(Number(el.initial.value), INITIAL_MIN, INITIAL_MAX);
+    smoothWater(true);
+    render(0, state.next);
+    paint();
+  });
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;
@@ -331,22 +396,31 @@
   });
 
   document.addEventListener('keydown', (e) => {
-    if (e.target.closest('button') && e.key === 'Enter') return;
+    const onControl = e.target.closest('button, select');
+    if (onControl && (e.key === 'Enter' || e.code === 'Space')) return;
 
     if (e.code === 'Space') {
       e.preventDefault();
-      if (state.phase === 'running' || state.phase === 'paused') togglePause();
-      else el.options.querySelector('.opt')?.click();
+      dialPressed();
+    } else if (e.key === 'ArrowUp' || e.key === '+' || e.key === '=') {
+      e.preventDefault();
+      adjustNext(STEP);
+    } else if (e.key === 'ArrowDown' || e.key === '-' || e.key === '_') {
+      e.preventDefault();
+      adjustNext(-STEP);
     } else if (e.key.toLowerCase() === 'r') {
       reset();
     } else if (e.key.toLowerCase() === 's') {
       toggleSound();
-    } else if (/^[1-9]$/.test(e.key)) {
-      el.options.children[Number(e.key) - 1]?.click();
     }
   });
 
+  // ---------- boot ----------
+
+  buildInitialOptions();
   paintSound();
+  smoothWater(true);
+  render(0, state.next);
   paint();
 
   // Offline support + Android's "install app" prompt. Needs https (or localhost).

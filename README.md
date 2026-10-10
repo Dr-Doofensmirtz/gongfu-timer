@@ -9,31 +9,35 @@ python3 -m http.server 4173
 
 Then open http://localhost:4173. Any static host works too.
 
-## How the steep times progress
+## How it works
 
-- **Steep 1** — pick from 10s, 15s, 20s, 25s, 30s.
-- **After a steep under a minute** — the next options are `current + 5s`,
-  `current + 10s`, `current + 15s`, and `1 min`. Picking 15s gives 20s, 25s,
-  30s, 1 min.
-- **Once you cross into minutes** — the options stay in minutes: the time you
-  just used plus the next four. After 1 min you get 1, 2, 3, 4, 5 min; after
-  2 min you get 2, 3, 4, 5, 6 min.
+The app opens on a setup screen:
 
-Options above 1 min are folded into the `1 min` button, so a 55s steep offers
-1 min as its only next step.
+- **Initial steep** — a dropdown from 5s to 1 min in 5 second steps.
+- **Increment per steep** — set with `-5s` / `+5s`, anywhere from 0 to 60s.
+
+**Tap the dial** to start. Tapping it again pauses and resumes. When a steep
+finishes the cup fills, chimes, and then settles to show the next infusion
+time, which is the steep you just ran plus the increment. Tap the dial again to
+brew it.
+
+Before starting any infusion, `-5s` / `+5s` under the dial nudge that time
+(5s to 10 min). An adjusted time becomes the base for the next increment, so
+shortening one steep carries through to the rest of the session.
+
+`Reset` returns to the setup screen and clears the steep log.
 
 ## Interface
 
-- Steep number sits above the dial; past steeps are listed under the buttons.
+- Steep number sits above the dial; past steeps are listed underneath.
 - The dial fills with water as the steep runs, and is full at 0:00.
-- Tap the dial to pause or resume.
 - Completion plays a chime and vibrates on phones that support it.
 - The speaker icon in the top right mutes the chime; the choice is remembered
   in `localStorage` (vibration is unaffected).
 - The screen is kept awake while a timer runs (where the Wake Lock API exists).
 
-Keyboard: `space` starts the first option or pauses, `1`–`9` pick an option,
-`s` toggles sound, `r` resets the session.
+Keyboard: `space` starts, pauses and resumes, `up`/`down` (or `+`/`-`) adjust
+the upcoming infusion, `s` toggles sound, `r` resets.
 
 ## Putting it on an Android home screen
 

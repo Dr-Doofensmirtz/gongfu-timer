@@ -36,7 +36,7 @@
   </button>
 
   <section class="dial-wrap">
-    <button class="dial-btn" id="dialBtn" type="button" aria-label="Pause or resume the timer">
+    <button class="dial-btn" id="dialBtn" type="button" aria-label="Start, pause or resume the timer">
       <svg class="dial" viewBox="0 0 200 200" aria-hidden="true">
         <defs>
           <clipPath id="dialClip"><circle cx="100" cy="100" r="92"/></clipPath>
@@ -67,8 +67,32 @@
   </section>
 
   <section class="controls">
-    <p class="choose-label" id="chooseLabel">Steeping time</p>
-    <div class="options" id="options"></div>
+
+    <div class="panel" id="setupPanel">
+      <div class="field">
+        <label class="field-label" for="initialSelect">Initial steep</label>
+        <select class="select" id="initialSelect"></select>
+      </div>
+      <div class="field">
+        <span class="field-label">Increment per steep</span>
+        <div class="stepper">
+          <button class="step" id="incMinus" type="button" aria-label="Decrease increment by 5 seconds">&minus;5s</button>
+          <span class="step-value" id="incValue" aria-live="polite">+5s</span>
+          <button class="step" id="incPlus" type="button" aria-label="Increase increment by 5 seconds">+5s</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="adjustPanel" hidden>
+      <div class="field">
+        <span class="field-label">Next infusion</span>
+        <div class="stepper">
+          <button class="step" id="nextMinus" type="button" aria-label="Shorten next infusion by 5 seconds">&minus;5s</button>
+          <button class="step" id="nextPlus" type="button" aria-label="Lengthen next infusion by 5 seconds">+5s</button>
+        </div>
+      </div>
+    </div>
+
     <div class="log-row">
       <div class="log" id="log" aria-live="polite"></div>
       <button class="reset" id="resetBtn" type="button" hidden>Reset</button>
