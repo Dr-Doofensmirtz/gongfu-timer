@@ -35,13 +35,22 @@ session. The steep log sits below.
 
 - Steep number sits above the dial; past steeps are listed underneath.
 - The dial fills with water as the steep runs, and is full at 0:00.
+- On completion the water washes to a brighter amber, the ring flares, and the
+  dial pulses for about a second and a half before draining to the next time.
 - Completion plays a chime and vibrates on phones that support it.
+- With permission, it also posts a notification carrying a **Start next
+  infusion** button, so the next steep can be started without opening the app.
+  The bell icon turns this off; it greys out if the browser blocked the
+  permission. Note that firing it needs running JavaScript, and browsers
+  throttle backgrounded pages, so it can arrive late if you have been away for
+  several minutes.
 - The speaker icon in the top right mutes the chime; the choice is remembered
   in `localStorage` (vibration is unaffected).
 - The screen is kept awake while a timer runs (where the Wake Lock API exists).
 
 Keyboard: `space` starts, pauses and resumes, `up`/`down` (or `+`/`-`) adjust
-the upcoming infusion, `s` toggles sound, `r` resets.
+the upcoming infusion, `s` toggles sound, `n` toggles the notification, `r`
+resets.
 
 ## Putting it on an Android home screen
 

@@ -6,6 +6,10 @@
   --muted: #7d857f;
   --accent: #d4a24a;
   --accent-dim: #6b5327;
+  --water-top: #d0a054;
+  --water-bot: #6c4a19;
+  --water-top-lit: #f6d492;
+  --water-bot-lit: #b87c2b;
   color-scheme: dark;
   --dial: clamp(180px, min(78vmin, calc(100vh - 320px)), 460px);
 }
@@ -59,12 +63,17 @@ body { overflow: hidden; }
   min-height: 1em;
 }
 
-/* ---------- sound toggle ---------- */
+/* ---------- corner toggles ---------- */
 
-.sound {
+.toggles {
   position: absolute;
   top: max(14px, env(safe-area-inset-top));
-  right: 14px;
+  right: 10px;
+  display: flex;
+  gap: 2px;
+}
+
+.icon-btn {
   width: 40px;
   height: 40px;
   display: grid;
@@ -78,23 +87,27 @@ body { overflow: hidden; }
   transition: color .15s, border-color .15s;
 }
 
-.sound:hover { border-color: var(--line); }
-.sound:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.icon-btn:hover { border-color: var(--line); }
+.icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-.sound svg {
+.icon-btn svg {
   width: 20px;
   height: 20px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.6;
   stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.sound .spk { fill: currentColor; stroke-linejoin: round; }
+.icon-btn .spk { fill: currentColor; }
 
-.sound[aria-pressed="true"]  .off-marks { display: none; }
-.sound[aria-pressed="false"] .on-marks  { display: none; }
-.sound[aria-pressed="false"] { color: var(--muted); }
+.icon-btn[aria-pressed="true"]  .off-marks { display: none; }
+.icon-btn[aria-pressed="false"] .on-marks  { display: none; }
+.icon-btn[aria-pressed="false"] { color: var(--muted); }
+
+/* permission was refused at the OS level, so the toggle cannot do anything */
+.icon-btn.blocked { color: var(--line); cursor: default; }
 
 /* ---------- dial ---------- */
 
@@ -144,6 +157,12 @@ body { overflow: hidden; }
 
 .wave path { fill: url(#waterGrad); }
 
+/* stop-color is set as an attribute from JS. A custom property does not
+   invalidate the cached gradient, and a CSS transition never runs on a
+   presentation attribute, so the wash lands in one step rather than fading. */
+.grad-top { stop-opacity: .80; }
+.grad-bot { stop-opacity: .70; }
+
 .wave-front { animation: drift 6.5s linear infinite; }
 .wave-back  { animation: drift 9.5s linear infinite reverse; opacity: .45; }
 
@@ -179,12 +198,26 @@ body { overflow: hidden; }
   min-height: 1em;
 }
 
-.dial-btn.is-done .state { color: var(--accent); }
-.dial-btn.is-done .ring-progress { animation: pulse 1.9s ease-in-out infinite; }
+/* completion: the water washes brighter, the ring flares, the dial pulses */
+.dial-btn.celebrate .state { color: var(--accent); }
+.dial-btn.celebrate .ring-track { stroke: var(--accent-dim); }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: .25; }
+.dial-btn.celebrate .ring-progress {
+  stroke-width: 4;
+  filter: drop-shadow(0 0 6px rgba(212, 162, 74, .55));
+  transition: stroke-width .3s ease;
+}
+
+.dial-btn.celebrate .dial { animation: dial-pulse 1.4s ease-out; }
+
+@keyframes dial-pulse {
+  0%   { transform: scale(1); }
+  12%  { transform: scale(1.05); }
+  30%  { transform: scale(1); }
+  45%  { transform: scale(1.028); }
+  62%  { transform: scale(1); }
+  76%  { transform: scale(1.012); }
+  100% { transform: scale(1); }
 }
 
 /* ---------- controls ---------- */
@@ -322,7 +355,7 @@ body { overflow: hidden; }
 
 @media (max-height: 560px) {
   :root { --dial: clamp(150px, 34vh, 210px); }
-  .sound { top: 6px; right: 6px; }
+  .toggles { top: 6px; right: 4px; }
   .app { gap: 10px; }
   .step, .select { min-height: 42px; }
   .controls { gap: 8px; }
@@ -330,6 +363,6 @@ body { overflow: hidden; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wave-front, .wave-back, .dial-btn.is-done .ring-progress { animation: none; }
+  .wave-front, .wave-back, .dial-btn.celebrate .dial { animation: none; }
   .water-level.smooth { transition: none; }
 }

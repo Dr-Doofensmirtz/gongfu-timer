@@ -1,6 +1,6 @@
 /* Offline shell for Gongfu Timer. Bump CACHE when the shell files change. */
 
-const CACHE = 'gongfu-v3';
+const CACHE = 'gongfu-v4';
 
 const SHELL = [
   './',
@@ -53,5 +53,25 @@ self.addEventListener('fetch', (event) => {
     }
 
     return cached || (await fromNetwork) || Response.error();
+  })());
+});
+
+// The completion notification carries a "start next" button. The page is still
+// alive whenever this fires — a frozen page could not have posted the
+// notification — so handing the action to an open client is enough.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const startNext = event.action === 'start-next';
+
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const client = windows.find((c) => c.url.startsWith(self.registration.scope)) || windows[0];
+
+    if (client) {
+      if (startNext) client.postMessage({ action: 'start-next' });
+      if ('focus' in client) await client.focus();
+      return;
+    }
+    await self.clients.openWindow('./');
   })());
 });

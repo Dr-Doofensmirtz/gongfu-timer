@@ -13,6 +13,8 @@
     waveBack: document.getElementById('waveBack'),
     waveFront: document.getElementById('waveFront'),
     ring: document.getElementById('ringProgress'),
+    gradTop: document.querySelector('.grad-top'),
+    gradBot: document.querySelector('.grad-bot'),
     time: document.getElementById('timeLabel'),
     state: document.getElementById('stateLabel'),
     initialField: document.getElementById('initialField'),
@@ -28,6 +30,7 @@
     log: document.getElementById('log'),
     reset: document.getElementById('resetBtn'),
     sound: document.getElementById('soundBtn'),
+    notify: document.getElementById('notifyBtn'),
     controls: document.querySelector('.controls'),
   };
 
@@ -39,7 +42,7 @@
   const INCREMENT_MAX = 60;
   const NEXT_MIN = 5;         // a started infusion can be stretched well past a minute
   const NEXT_MAX = 600;
-  const DONE_HOLD_MS = 900;   // how long the full cup lingers before resetting
+  const DONE_HOLD_MS = 1500;  // long enough for the completion wash to play out
 
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
@@ -102,6 +105,20 @@
     el.water.style.transform = `translateY(${200 - f * 212}px)`;
     el.ring.style.strokeDashoffset = `${RING_LENGTH * (1 - f)}`;
     el.time.textContent = formatClock(secondsLeft);
+  }
+
+  const tone = (name) => getComputedStyle(document.documentElement)
+    .getPropertyValue(name).trim();
+
+  const WATER = {
+    base: [tone('--water-top'), tone('--water-bot')],
+    lit: [tone('--water-top-lit'), tone('--water-bot-lit')],
+  };
+
+  function setWaterTone(lit) {
+    const [top, bot] = lit ? WATER.lit : WATER.base;
+    el.gradTop.setAttribute('stop-color', top);
+    el.gradBot.setAttribute('stop-color', bot);
   }
 
   function smoothWater(on) {
@@ -167,6 +184,73 @@
     } catch { /* ignore */ }
   }
 
+  // ---------- completion notification ----------
+
+  // Lets a finished steep reach you outside the app, and carries a button that
+  // starts the next infusion without opening it.
+
+  const NOTIFY_KEY = 'gongfu.notify';
+  const NOTE_TAG = 'gongfu-steep';
+  const canNotify = 'Notification' in window && 'serviceWorker' in navigator;
+
+  let notifyOn = (() => {
+    try { return localStorage.getItem(NOTIFY_KEY) !== 'off'; } catch { return true; }
+  })();
+
+  function notifyBlocked() {
+    return !canNotify || Notification.permission === 'denied';
+  }
+
+  function paintNotify() {
+    const on = notifyOn && !notifyBlocked();
+    el.notify.setAttribute('aria-pressed', String(on));
+    el.notify.classList.toggle('blocked', notifyBlocked());
+    el.notify.setAttribute('aria-label', notifyBlocked()
+      ? 'Notifications blocked by the browser'
+      : on ? 'Completion notification on' : 'Completion notification off');
+  }
+
+  async function toggleNotify() {
+    if (notifyBlocked()) return;
+    notifyOn = !notifyOn;
+    try { localStorage.setItem(NOTIFY_KEY, notifyOn ? 'on' : 'off'); } catch { /* ignore */ }
+    if (notifyOn) await askNotifyPermission();
+    paintNotify();
+  }
+
+  // Asked on a tap rather than at load: browsers reject ungestured prompts.
+  async function askNotifyPermission() {
+    if (!canNotify || !notifyOn || Notification.permission !== 'default') return;
+    try { await Notification.requestPermission(); } catch { /* ignore */ }
+    paintNotify();
+  }
+
+  async function notifyDone(finished) {
+    if (!notifyOn || notifyBlocked() || Notification.permission !== 'granted') return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification(`Steep ${finished} done`, {
+        body: `Next infusion ${formatClock(state.next)}`,
+        tag: NOTE_TAG,
+        renotify: true,
+        requireInteraction: true,
+        silent: !soundOn,
+        icon: 'icons/icon-192.png',
+        badge: 'icons/icon-192.png',
+        actions: [{ action: 'start-next', title: `Start ${formatClock(state.next)}` }],
+      });
+    } catch { /* never let this break the timer */ }
+  }
+
+  async function clearNotification() {
+    if (!canNotify) return;
+    try {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (!reg) return;
+      (await reg.getNotifications({ tag: NOTE_TAG })).forEach((n) => n.close());
+    } catch { /* ignore */ }
+  }
+
   // ---------- screen wake lock ----------
 
   let wakeLock = null;
@@ -217,7 +301,7 @@
     const layout = state.history.length === 0 ? 'setup' : 'done';
 
     el.steep.textContent = `Steep ${state.steep}`;
-    el.dialBtn.classList.toggle('is-done', done && state.holding);
+    el.dialBtn.classList.toggle('celebrate', done && state.holding);
     el.controls.classList.toggle('hidden', !idle);
     el.initialField.hidden = layout !== 'setup';
     el.nextField.hidden = layout === 'setup';
@@ -274,6 +358,8 @@
 
   function start() {
     unlockAudio();
+    askNotifyPermission();
+    clearNotification();
     clearTimeout(holdTimer);
 
     state.phase = 'running';
@@ -283,6 +369,7 @@
     state.endAt = performance.now() + state.next * 1000;
 
     smoothWater(false);
+    setWaterTone(false);
     render(0, state.next);
     paint();
     requestWakeLock();
@@ -309,10 +396,12 @@
     state.remaining = 0;
 
     smoothWater(false);
+    setWaterTone(true);
     render(1, 0);
     paint();
     releaseWakeLock();
     chime();
+    notifyDone(state.steep - 1);
     if (navigator.vibrate) navigator.vibrate([120, 90, 120]);
 
     // Let the full cup sit for a beat, then drain it and show what is next.
@@ -324,6 +413,7 @@
     if (state.phase !== 'done' || !state.holding) return;
     state.holding = false;
     smoothWater(true);
+    setWaterTone(false);
     render(0, state.next);
     paint();
   }
@@ -375,6 +465,7 @@
     clearInterval(safetyTimer);
     clearTimeout(holdTimer);
     releaseWakeLock();
+    clearNotification();
 
     state.phase = 'setup';
     state.steep = 1;
@@ -386,6 +477,7 @@
     state.next = Number(el.initial.value);
 
     smoothWater(true);
+    setWaterTone(false);
     render(0, state.next);
     paint();
   }
@@ -395,6 +487,7 @@
   el.dialBtn.addEventListener('click', dialPressed);
   el.reset.addEventListener('click', reset);
   el.sound.addEventListener('click', toggleSound);
+  el.notify.addEventListener('click', toggleNotify);
 
   el.incMinus.addEventListener('click', () => adjustIncrement(-STEP));
   el.incPlus.addEventListener('click', () => adjustIncrement(STEP));
@@ -433,6 +526,8 @@
       reset();
     } else if (e.key.toLowerCase() === 's') {
       toggleSound();
+    } else if (e.key.toLowerCase() === 'n') {
+      toggleNotify();
     }
   });
 
@@ -440,6 +535,7 @@
 
   buildInitialOptions();
   paintSound();
+  paintNotify();
   smoothWater(true);
   render(0, state.next);
   paint();
@@ -448,6 +544,13 @@
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+
+    // the notification's action button reaches the page through here
+    navigator.serviceWorker.addEventListener('message', (e) => {
+      if (e.data && e.data.action === 'start-next' && (state.phase === 'done' || state.phase === 'setup')) {
+        start();
+      }
     });
   }
 })();
