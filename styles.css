@@ -137,13 +137,13 @@ body { overflow: hidden; }
 .ring-track {
   fill: none;
   stroke: var(--line);
-  stroke-width: 2;
+  stroke-width: 2px;
 }
 
 .ring-progress {
   fill: none;
   stroke: var(--accent);
-  stroke-width: 2;
+  stroke-width: 2px;
   stroke-linecap: round;
   transform: rotate(-90deg);
   transform-origin: 100px 100px;
@@ -198,14 +198,16 @@ body { overflow: hidden; }
   min-height: 1em;
 }
 
-/* completion: the water washes brighter, the ring flares, the dial pulses */
+/* completion: the water washes brighter, the ring flares, the dial pulses.
+   Neither the wash nor the flare is transitioned — Chromium pins stop-color
+   and stroke-width at their start value when a transition is declared on
+   them, so both land in one step and the pulse carries the motion. */
 .dial-btn.celebrate .state { color: var(--accent); }
 .dial-btn.celebrate .ring-track { stroke: var(--accent-dim); }
 
 .dial-btn.celebrate .ring-progress {
-  stroke-width: 4;
+  stroke-width: 4px;
   filter: drop-shadow(0 0 6px rgba(212, 162, 74, .55));
-  transition: stroke-width .3s ease;
 }
 
 .dial-btn.celebrate .dial { animation: dial-pulse 1.4s ease-out; }
